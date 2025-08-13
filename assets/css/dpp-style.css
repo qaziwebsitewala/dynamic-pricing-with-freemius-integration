@@ -1,0 +1,9 @@
+.dpp-widget { border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; max-width: 480px; }
+.dpp-price { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 600; }
+.dpp-total-wrap { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+.dpp-qty-wrap { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0; }
+.dpp-qty-wrap button { width: 42px; height: 36px; line-height: 14px; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
+.dpp-qty { width: 64px; text-align: center; height: 36px; border: 1px solid #cbd5e1; border-radius: 4px; }
+.dpp-button-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.dpp-button-row .button { cursor: pointer; }
+.dpp-message { margin-top: 8px; font-size: 0.9rem; }
