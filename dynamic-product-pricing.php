@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name:       Dynamic Product Pricing – Plus/Minus with AJAX Add to Cart & Buy Now
+ * Plugin Name:       dynamic product pricing – Plus/Minus with AJAX Add to Cart & Buy Now
  * Plugin URI:        https://qaziwebsitewala.com/
- * Description:       A lightweight WooCommerce widget that shows plus/minus quantity controls with dynamic price updates and AJAX Add to Cart/Buy Now. Use shortcode [dynamic_product_pricing product_id="123"] or simply [dynamic_product_pricing] on single product pages.
+ * Description:       A lightweight WooCommerce widget with plus/minus quantity controls, dynamic total price, and AJAX Add to Cart/Buy Now.
  * Version:           1.0.0
  * Author:            Hasan Alam Qazi
  * Author URI:        https://qaziwebsitewala.com/
@@ -11,7 +11,7 @@
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  *
- * @package Dynamic_Product_Pricing
+ * @package dynamic-product-pricing
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,30 +19,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Require WooCommerce notice
- */
-function dpp_requires_woocommerce_notice() {
-	if ( current_user_can( 'activate_plugins' ) ) {
-		echo '<div class="notice notice-error"><p>';
-		echo esc_html__( 'Dynamic Product Pricing requires WooCommerce to be installed and active.', 'dynamic-product-pricing' );
-		echo '</p></div>';
-	}
-}
-
-/**
- * Check WooCommerce
+ * Check WooCommerce active
  */
 function dpp_wc_active() {
 	return class_exists( 'WooCommerce' );
 }
 
 /**
- * Load textdomain
+ * Admin notice if WooCommerce missing
  */
-function dpp_load_textdomain() {
-	load_plugin_textdomain( 'dynamic-product-pricing', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+function dpp_requires_woocommerce_notice() {
+	if ( current_user_can( 'activate_plugins' ) && ! dpp_wc_active() ) {
+		echo '<div class="notice notice-error"><p>';
+		echo esc_html__( 'dynamic-product-pricing requires WooCommerce to be installed and active.', 'dynamic-product-pricing' );
+		echo '</p></div>';
+	}
 }
-add_action( 'plugins_loaded', 'dpp_load_textdomain' );
+add_action( 'admin_notices', 'dpp_requires_woocommerce_notice' );
 
 /**
  * Enqueue front assets
@@ -69,18 +62,17 @@ function dpp_enqueue_assets() {
 		true
 	);
 
-	// Nonce + endpoints for secure AJAX.
 	wp_localize_script(
 		'dpp-script',
 		'dppVars',
 		array(
 			'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 			'nonce'       => wp_create_nonce( 'dpp_nonce' ),
-			'checkoutUrl' => wc_get_checkout_url(),
+			'checkoutUrl' => function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : '',
 		)
 	);
 
-	// Make sure Woo cart fragments can refresh.
+	// Ensure Woo cart fragments are present so mini-cart updates without reload.
 	wp_enqueue_script( 'wc-cart-fragments' );
 }
 add_action( 'wp_enqueue_scripts', 'dpp_enqueue_assets' );
@@ -107,6 +99,7 @@ function dpp_shortcode( $atts ) {
 
 	$product_id = (int) $atts['product_id'];
 
+	// Auto-detect on single product page.
 	if ( ! $product_id && function_exists( 'is_product' ) && is_product() ) {
 		global $product;
 		if ( $product instanceof WC_Product ) {
@@ -123,7 +116,7 @@ function dpp_shortcode( $atts ) {
 		return '<p><strong>' . esc_html__( 'Invalid product ID.', 'dynamic-product-pricing' ) . '</strong></p>';
 	}
 
-	$price_raw = (float) $product->get_price();
+	$price_raw  = (float) $product->get_price();
 	$price_html = $product->get_price_html();
 
 	ob_start();
@@ -134,8 +127,13 @@ function dpp_shortcode( $atts ) {
 
 		<div class="dpp-price">
 			<?php
-			// Show Woo price HTML first, and we’ll still compute totals below.
-			echo wp_kses_post( sprintf( /* translators: %s: price HTML */ __( 'Price: %s', 'dynamic-product-pricing' ), $price_html ) );
+			echo wp_kses_post(
+				sprintf(
+					/* translators: %s: product price HTML */
+					__( 'Price: %s', 'dynamic-product-pricing' ),
+					$price_html
+				)
+			);
 			?>
 			<span class="dpp-total-wrap">
 				<strong><?php esc_html_e( 'Total:', 'dynamic-product-pricing' ); ?></strong>
@@ -145,20 +143,21 @@ function dpp_shortcode( $atts ) {
 
 		<div class="dpp-qty-wrap">
 			<button type="button" class="dpp-minus" aria-label="<?php esc_attr_e( 'Decrease quantity', 'dynamic-product-pricing' ); ?>">−</button>
-			<input type="number" class="dpp-qty" value="1" min="1" inputmode="numeric" aria-label="<?php esc_attr_e( 'Quantity', 'dynamic-product-pricing' ); ?>" />
+			<input type="number" class="dpp-qty" value="1" min="1" inputmode="numeric" aria-label="<?php esc_attr_e( 'Quantity', 'dynamic-product-pricing' ); ?>">
 			<button type="button" class="dpp-plus" aria-label="<?php esc_attr_e( 'Increase quantity', 'dynamic-product-pricing' ); ?>">+</button>
 		</div>
 
 		<div class="dpp-button-row">
-		<a href="#"
-   class="button ajax_add_to_cart add_to_cart_button dpp-add-to-cart"
-   data-product_id="<?php echo esc_attr($product_id); ?>"
-   data-product_sku="<?php echo esc_attr($product->get_sku()); ?>"
-   data-quantity="1"
-   aria-label="<?php echo esc_attr($product->add_to_cart_description()); ?>"
-   rel="nofollow">
-    <?php esc_html_e( 'Add to Cart', 'dynamic-product-pricing' ); ?>
-</a>
+			<a href="#"
+				class="button ajax_add_to_cart add_to_cart_button dpp-add-to-cart"
+				data-product_id="<?php echo esc_attr( $product_id ); ?>"
+				data-product_sku="<?php echo esc_attr( $product->get_sku() ); ?>"
+				data-quantity="1"
+				aria-label="<?php echo esc_attr( $product->add_to_cart_description() ); ?>"
+				rel="nofollow">
+				<?php esc_html_e( 'Add to Cart', 'dynamic-product-pricing' ); ?>
+			</a>
+
 			<a href="#"
 				class="button dpp-buy-now"
 				data-product_id="<?php echo esc_attr( $product_id ); ?>">
@@ -176,51 +175,60 @@ add_shortcode( 'dynamic_product_pricing', 'dpp_shortcode' );
 /**
  * AJAX: Add to Cart
  */
-// Handle AJAX: Add to Cart
 add_action( 'wp_ajax_dpp_add_to_cart', 'dpp_handle_add_to_cart' );
 add_action( 'wp_ajax_nopriv_dpp_add_to_cart', 'dpp_handle_add_to_cart' );
 
 function dpp_handle_add_to_cart() {
-    check_ajax_referer( 'dpp_nonce', 'nonce' );
+	if ( ! dpp_wc_active() ) {
+		wp_send_json_error(
+			array( 'message' => __( 'WooCommerce not active.', 'dynamic-product-pricing' ) )
+		);
+	}
 
-    $product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
-    $quantity   = isset($_POST['quantity']) ? max(1, intval($_POST['quantity'])) : 1;
+	check_ajax_referer( 'dpp_nonce', 'nonce' );
 
-    if ( ! $product_id || ! WC()->cart ) {
-        wp_send_json_error([
-            'message' => 'Invalid product or cart not available'
-        ]);
-    }
+	$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+	$quantity   = isset( $_POST['quantity'] ) ? max( 1, absint( $_POST['quantity'] ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-    $added = WC()->cart->add_to_cart( $product_id, $quantity );
+	if ( ! $product_id || ! get_post( $product_id ) ) {
+		wp_send_json_error(
+			array( 'message' => __( 'Invalid product.', 'dynamic-product-pricing' ) )
+		);
+	}
 
-    if ( $added ) {
-        // Get WooCommerce cart fragments
-        ob_start();
-        woocommerce_mini_cart();
-        $mini_cart = ob_get_clean();
+	$added = WC()->cart->add_to_cart( $product_id, $quantity );
 
-        $fragments = apply_filters( 'woocommerce_add_to_cart_fragments', [
-            'div.widget_shopping_cart_content' => '<div class="widget_shopping_cart_content">' . $mini_cart . '</div>'
-        ]);
+	if ( $added ) {
+		// Build mini-cart fragment like Woo does.
+		ob_start();
+		woocommerce_mini_cart();
+		$mini_cart = ob_get_clean();
 
-        wp_send_json_success([
-            'message'   => 'Product added to cart',
-            'fragments' => $fragments,
-            'cart_hash' => WC()->cart->get_cart_hash(),
-        ]);
-    } else {
-        wp_send_json_error([
-            'message' => 'Could not add to cart'
-        ]);
-    }
+		$fragments = apply_filters(
+			'woocommerce_add_to_cart_fragments',
+			array(
+				'div.widget_shopping_cart_content' => '<div class="widget_shopping_cart_content">' . $mini_cart . '</div>',
+			)
+		);
+
+		wp_send_json_success(
+			array(
+				'message'   => __( 'Added to cart.', 'dynamic-product-pricing' ),
+				'fragments' => $fragments,
+				'cart_hash' => WC()->cart->get_cart_hash(),
+			)
+		);
+	}
+
+	wp_send_json_error( array( 'message' => __( 'Could not add to cart.', 'dynamic-product-pricing' ) ) );
 }
-
-
 
 /**
  * AJAX: Buy Now (empty cart -> add -> checkout)
  */
+add_action( 'wp_ajax_dpp_buy_now', 'dpp_ajax_buy_now' );
+add_action( 'wp_ajax_nopriv_dpp_buy_now', 'dpp_ajax_buy_now' );
+
 function dpp_ajax_buy_now() {
 	if ( ! dpp_wc_active() ) {
 		wp_send_json_error( array( 'message' => __( 'WooCommerce not active.', 'dynamic-product-pricing' ) ) );
@@ -228,8 +236,8 @@ function dpp_ajax_buy_now() {
 
 	check_ajax_referer( 'dpp_nonce', 'nonce' );
 
-	$product_id = isset( $_POST['product_id'] ) ? (int) $_POST['product_id'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-	$quantity   = isset( $_POST['quantity'] ) ? max( 1, (int) $_POST['quantity'] ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+	$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+	$quantity   = isset( $_POST['quantity'] ) ? max( 1, absint( $_POST['quantity'] ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 	if ( $product_id <= 0 ) {
 		wp_send_json_error( array( 'message' => __( 'Invalid product.', 'dynamic-product-pricing' ) ) );
@@ -249,16 +257,14 @@ function dpp_ajax_buy_now() {
 
 	wp_send_json_error( array( 'message' => __( 'Could not add to cart.', 'dynamic-product-pricing' ) ) );
 }
-add_action( 'wp_ajax_dpp_buy_now', 'dpp_ajax_buy_now' );
-add_action( 'wp_ajax_nopriv_dpp_buy_now', 'dpp_ajax_buy_now' );
 
 /**
- * Admin page (no external/public links auto-inserted)
+ * Simple admin menu (no external links auto-inserted)
  */
 function dpp_register_admin_menu() {
 	add_menu_page(
-		__( 'Dynamic Pricing', 'dynamic-product-pricing' ),
-		__( 'Dynamic Pricing', 'dynamic-product-pricing' ),
+		__( 'dynamic-product-pricing', 'dynamic-product-pricing' ),
+		__( 'dynamic-product-pricing', 'dynamic-product-pricing' ),
 		'manage_options',
 		'dpp-settings',
 		'dpp_render_settings_page',
@@ -277,16 +283,13 @@ function dpp_register_admin_menu() {
 }
 add_action( 'admin_menu', 'dpp_register_admin_menu' );
 
-/**
- * Settings page callback
- */
 function dpp_render_settings_page() {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Dynamic Product Pricing', 'dynamic-product-pricing' ); ?></h1>
+		<h1><?php esc_html_e( 'dynamic-product-pricing', 'dynamic-product-pricing' ); ?></h1>
 		<p><?php esc_html_e( 'Use the shortcode below to render the widget:', 'dynamic-product-pricing' ); ?></p>
 		<code>[dynamic_product_pricing]</code>
 		<p><?php esc_html_e( 'Optionally pass a product ID:', 'dynamic-product-pricing' ); ?> <code>[dynamic_product_pricing product_id="123"]</code></p>
@@ -294,9 +297,6 @@ function dpp_render_settings_page() {
 	<?php
 }
 
-/**
- * Products page
- */
 function dpp_render_products_page() {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;

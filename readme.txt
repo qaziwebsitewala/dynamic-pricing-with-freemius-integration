@@ -1,61 +1,43 @@
-=== Dynamic Product Pricing – Plus/Minus with AJAX Add to Cart & Buy Now ===
+=== dynamic product pricing – Plus/Minus with AJAX Add to Cart & Buy Now ===
 Contributors: qaziwebsitewala
-Donate link: https://qaziwebsitewala.com/
-Tags: woocommerce, buy now, add to cart, quantity, ajax, plus minus
-Requires at least: 5.0
-Tested up to: 6.6
+Tags: woocommerce, ajax, add to cart, buy now, quantity buttons
+Requires at least: 5.8
+Tested up to: 6.8
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A lightweight WooCommerce widget with **plus/minus quantity controls**, dynamic total price, and **AJAX Add to Cart** & **AJAX Buy Now** (direct to checkout). No forced external links.
+A WooCommerce widget with plus/minus quantity buttons, dynamic total price, and AJAX Add to Cart/Buy Now.
 
 == Description ==
+A lightweight WooCommerce widget that:
+- Shows plus/minus quantity controls
+- Updates total price live on screen
+- Supports AJAX **Add to Cart**
+- Supports AJAX **Buy Now** (direct to checkout)
+- Doesn’t inject forced external links
 
-This plugin improves the purchase flow for WooCommerce:
-
-* Plus/Minus buttons to adjust quantity.
-* Dynamic total price update on screen.
-* AJAX **Add to Cart** (updates mini cart without reload).
-* AJAX **Buy Now** (empties cart, adds product, redirects to checkout).
-* Works as a shortcode: `[dynamic_product_pricing]` or `[dynamic_product_pricing product_id="123"]`.
-* Translation-ready, GPLv2 or later, and adheres to WordPress.org plugin guidelines.
-
-**No external links are injected into your public site.**  
-This plugin does not track users and does not send data to third parties.
+Use the shortcode on a product page or pass a product ID:
+- `[dynamic_product_pricing]`
+- `[dynamic_product_pricing product_id="123"]`
 
 == Installation ==
-
-1. Upload the `dynamic-product-pricing` folder to `/wp-content/plugins/`.
-2. Activate via **Plugins → Installed Plugins**.
-3. Ensure WooCommerce is active.
-4. Add shortcode to a page or single product template:
-   * `[dynamic_product_pricing]` (on single product pages)
-   * `[dynamic_product_pricing product_id="123"]` (anywhere)
+1. Upload the `dynamic-product-pricing` folder to `/wp-content/plugins/`
+2. Activate the plugin via **Plugins → Installed Plugins**
+3. Add the shortcode to a page or single product content.
 
 == Frequently Asked Questions ==
 
-= Does it work without WooCommerce? =
-No. The plugin requires WooCommerce.
+= Does it work with variable products? =
+This version targets simple products. Extending to variations would require reading selected variation IDs and prices.
 
-= Will it add external “powered by” links? =
-No. We never add public-facing external links without your explicit permission.
-
-= Does it support variable products? =
-The quantity/total UI works; the add-to-cart success depends on attribute selection on the page. Use on a product context where variations are properly selected.
-
-== Screenshots ==
-
-1. Plus/Minus with dynamic total and AJAX buttons on a product.
+= Can I style the buttons? =
+Yes. Override or extend styles in `assets/css/dpp-style.css`.
 
 == Changelog ==
-
 = 1.0.0 =
 * Initial release.
 
 == Upgrade Notice ==
-
-= 1.0.0 =
-First public release.
-
+* 1.0.0 – First release.

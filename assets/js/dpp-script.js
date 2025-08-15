@@ -12,7 +12,7 @@
       var $qty = $widget.find('.dpp-qty');
       var $total = $widget.find('.dpp-total');
       var $message = $widget.find('.dpp-message');
-      var $addToCart = $widget.find('.dpp-add-to-cart');
+      var $addToCart = $widget.find('.dpp-add-to-cart, .ajax_add_to_cart.add_to_cart_button'); // ensure we capture the anchor
       var $buyNow = $widget.find('.dpp-buy-now');
 
       function updateTotal() {
@@ -43,10 +43,7 @@
       $addToCart.on('click', function (e) {
         e.preventDefault();
         var pid = parseInt($(this).data('product_id'), 10);
-        var qty = Math.max(parseInt($qty.val(), 10) || 1, 1);
-
-        // Ensure latest qty is set before sending to Woo
-        $(this).attr('data-quantity', qty);
+        var qty = Math.max(parseInt($qty.val(), 10) || 1, 1); // always read from input
 
         $.ajax({
           type: 'POST',
@@ -74,9 +71,8 @@
                 resp.data.fragments || {},
                 resp.data.cart_hash || ''
               ]);
-
             } else {
-              $message.text(resp.data && resp.data.message ? resp.data.message : 'Error.');
+              $message.text((resp && resp.data && resp.data.message) ? resp.data.message : 'Error.');
             }
           },
           error: function () {
@@ -90,8 +86,6 @@
         e.preventDefault();
         var pid = parseInt($(this).data('product_id'), 10);
         var qty = Math.max(parseInt($qty.val(), 10) || 1, 1);
-
-        $(this).attr('data-quantity', qty);
 
         $.ajax({
           type: 'POST',
@@ -107,7 +101,7 @@
             if (resp && resp.success && resp.data.checkout_url) {
               window.location.href = resp.data.checkout_url;
             } else {
-              $message.text(resp.data && resp.data.message ? resp.data.message : 'Error.');
+              $message.text((resp && resp.data && resp.data.message) ? resp.data.message : 'Error.');
             }
           },
           error: function () {
