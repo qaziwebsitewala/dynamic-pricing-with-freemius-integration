@@ -1,10 +1,10 @@
 (function ($) {
   'use strict';
 
-  function formatEuro(amount) {
-    return '€' + (Math.round(amount * 100) / 100).toFixed(2);
-  }
-
+  function formatPrice(amount) {
+    return dpp_vars.currency_symbol + (Math.round(amount * 100) / 100).toFixed(2);
+}
+	
   $(function () {
     $('.dpp-widget').each(function () {
       var $widget = $(this);
@@ -17,7 +17,7 @@
 
       function updateTotal() {
         var q = Math.max(parseInt($qty.val(), 10) || 1, 1);
-        $total.text(formatEuro(price * q));
+        $total.text(formatPrice(price * q));
         $addToCart.attr('data-quantity', q);
         $buyNow.attr('data-quantity', q);
       }
